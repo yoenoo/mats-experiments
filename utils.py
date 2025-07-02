@@ -1,3 +1,6 @@
+import os
+import tempfile
+import subprocess
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
@@ -12,7 +15,9 @@ def chat(model, tokenizer, messages: list[dict], max_tokens: int = 256):
   prompt = tokenizer.apply_chat_template(
     messages,
     tokenize=False,  # Return as string, not tokens
-    add_generation_prompt=True  # Add assistant prompt for generation
+    add_generation_prompt=True,  # Add assistant prompt for generation
+    temperature=1,
+    top_p=0.95,
   )
   inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
 
@@ -26,3 +31,21 @@ def chat(model, tokenizer, messages: list[dict], max_tokens: int = 256):
 
     generations = tokenizer.batch_decode(outputs, skip_special_tokens=True)[0]
     return generations
+
+def evaluate_solution(solution_code: str, test_list: list) -> bool:
+  # Create a temporary Python file with the solution and tests
+  with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+    f.write(solution_code + '\n\n')
+    for test in test_list:
+      f.write(test + '\n')
+    temp_file = f.name
+
+  try:
+    # Run the tests
+    result = subprocess.run(['python3', temp_file], capture_output=True, text=True, timeout=10)
+    return result.returncode == 0
+  except:
+    return False
+  finally:
+    if os.path.exists(temp_file):
+      os.unlink(temp_file)
