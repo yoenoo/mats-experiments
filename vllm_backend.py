@@ -10,6 +10,7 @@ from datasets import load_dataset
 
 import uuid
 from vllm import AsyncLLMEngine, AsyncEngineArgs, SamplingParams
+from utils import evaluate_solution
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -56,6 +57,7 @@ Now write your solution:
 async def run_vllm_inference(engine, tokenizer, question, test_lists, system_prompt="", max_tokens=1024, **kwargs):
   sampling_params = SamplingParams(
     # n=n,                      # Number of completions to sample # n=1 is much slower?
+    n=5,
     max_tokens=max_tokens,
     **kwargs,
   )
@@ -70,7 +72,6 @@ async def run_vllm_inference(engine, tokenizer, question, test_lists, system_pro
   )
   generator = engine.generate(formatted_prompt, sampling_params, uuid.uuid4())
 
-  outputs = []
   final_output = None 
   async for output in generator:
     final_output = output
@@ -83,9 +84,9 @@ async def run_vllm_inference(engine, tokenizer, question, test_lists, system_pro
       correct = evaluate_solution(guess, test_lists)
     return correct
 
-  return parse_output(final_output.outputs[0].text)
+  return parse_output(formatted_prompt + final_output.outputs[0].text)
 
-async def run_vllm(model, tokenizer, dataset, n_trials):
+async def run_vllm(model, tokenizer, dataset):
   engine_args = AsyncEngineArgs(
     model=model,
     dtype="bfloat16", 
@@ -96,7 +97,7 @@ async def run_vllm(model, tokenizer, dataset, n_trials):
   engine = AsyncLLMEngine.from_engine_args(engine_args)
 
   tasks = [
-    run_vllm_inference(engine, tokenizer, example["text"], example["test_list"], system_prompt=SYSTEM_PROMPT, n=n_trials, max_tokens=1024, temperature=1.0, top_p=0.95)
+    run_vllm_inference(engine, tokenizer, example["text"], example["test_list"], system_prompt=SYSTEM_PROMPT, max_tokens=1024, temperature=1.0, top_p=0.95)
     for example in dataset
   ]
 
