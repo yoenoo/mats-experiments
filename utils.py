@@ -1,14 +1,13 @@
 import os
-import torch
 import tempfile
 import subprocess
+import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
-def load_model(model_name: str):
-  print(f"Loading model {model_name}...")
-
-  tokenizer = AutoTokenizer.from_pretrained(model_name)
-  model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype=torch.bfloat16, device_map="auto")
+def load_model(model_path: str):
+  print(f"Loading model {model_path}...")
+  tokenizer = AutoTokenizer.from_pretrained(model_path)
+  model = AutoModelForCausalLM.from_pretrained(model_path, torch_dtype=torch.bfloat16, device_map="auto")
   return model, tokenizer
 
 def chat(model, tokenizer, messages: list[dict], max_tokens: int = 256):
