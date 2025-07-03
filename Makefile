@@ -7,7 +7,7 @@ export TRANSFORMERS_LOGGING_LEVEL=ERROR
 # export SAFETENSORS_FAST_GPU=1
 
 
-all: run_pass1 run_pass5 run_pass10
+all: run_all
 
 run_pass1:
 	python run.py --model Qwen/Qwen2.5-Coder-7B-Instruct --dataset google-research-datasets/mbpp --pass_n 1
