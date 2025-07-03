@@ -88,7 +88,7 @@ async def run_vllm(engine, tokenizer, dataset, n_trials):
       top_p=0.95, 
       n=n_trials
     )
-    for example in dataset.select(range(2))
+    for example in dataset
   ]
 
   results = []

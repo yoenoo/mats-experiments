@@ -1,4 +1,5 @@
 import asyncio
+from collections import defaultdict
 from datasets import load_dataset
 from utils import load_model
 from vllm_backend import run_vllm, init_engine
@@ -16,15 +17,16 @@ if __name__ == "__main__":
   dataset = load_dataset(args.dataset, split="train")
   engine = init_engine(model_path=args.model, dtype="bfloat16", gpu_memory_utilization=0.6)
 
-  for n in args.pass_n:
-    # engine = init_engine(model_path=args.model, dtype="bfloat16", gpu_memory_utilization=0.6)
-    results = asyncio.run(run_vllm(engine, tokenizer, dataset, n_trials=n))
+  results = asyncio.run(run_vllm(engine, tokenizer, dataset, n_trials=max(args.pass_n)))
 
-    correct, total = 0, 0
-    for res in results:
-      correct += any(res)
-      total += 1
-    
+  stats = defaultdict(lambda: [0, 0])
+  for res in results:
+    for n in args.pass_n:
+      stats[n][0] += any(res[:n]) # correct
+      stats[n][1] += 1            # total
+  
+  for n in args.pass_n:
+    correct, total = stats[n]
     print(f"pass@{n}: {correct}/{total} (acc={correct/total*100:.2f}%)")
 
 
