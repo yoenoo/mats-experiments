@@ -1,7 +1,7 @@
 import os
+import torch
 import tempfile
 import subprocess
-import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
 def load_model(model_name: str):
@@ -14,8 +14,8 @@ def load_model(model_name: str):
 def chat(model, tokenizer, messages: list[dict], max_tokens: int = 256):
   prompt = tokenizer.apply_chat_template(
     messages,
-    tokenize=False,  # Return as string, not tokens
-    add_generation_prompt=True,  # Add assistant prompt for generation
+    tokenize=False,
+    add_generation_prompt=True,
     temperature=1,
     top_p=0.95,
   )

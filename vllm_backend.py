@@ -1,24 +1,10 @@
-import os
 import re
-import ast
-import torch
-import pandas as pd
-from tqdm.asyncio import tqdm
-
-from transformers import AutoTokenizer
-from datasets import load_dataset
-
 import uuid
+from tqdm.asyncio import tqdm
 from vllm import AsyncLLMEngine, AsyncEngineArgs, SamplingParams
+
 from utils import evaluate_solution
 
-from dotenv import load_dotenv
-load_dotenv()
-
-# import argparse
-# parser = argparse.ArgumentParser()
-# parser.add_argument("--model_id", type=str, required=True)
-# FLAGS,_ = parser.parse_known_args()
 
 SYSTEM_PROMPT = """"""
 
@@ -54,27 +40,22 @@ Now write your solution:
   ]
   return messages
 
-async def run_vllm_inference(engine, tokenizer, question, test_lists, system_prompt="", max_tokens=1024, **kwargs):
-  sampling_params = SamplingParams(
-    # n=n,                      # Number of completions to sample # n=1 is much slower?
-    n=5,
-    max_tokens=max_tokens,
-    **kwargs,
-  )
+async def run_vllm_inference(engine, tokenizer, question, test_lists, n, system_prompt="", max_tokens=1024, **kwargs):
+  sampling_params = SamplingParams(n=n, max_tokens=max_tokens, **kwargs)
 
   messages = create_prompt(question, test_lists, system_prompt)
   formatted_prompt = tokenizer.apply_chat_template(
     messages,
-    tokenize=False,  # Return as string, not tokens
-    add_generation_prompt=True,  # Add assistant prompt for generation
-    temperature=1,
-    top_p=0.95,
+    tokenize=False,
+    add_generation_prompt=True,
   )
   generator = engine.generate(formatted_prompt, sampling_params, uuid.uuid4())
 
-  final_output = None 
+  completions = []
   async for output in generator:
-    final_output = output
+    for o in output.outputs:
+      if o.finished():
+        completions.append(o.text)
 
   def parse_output(completion):
     correct = False
@@ -84,9 +65,10 @@ async def run_vllm_inference(engine, tokenizer, question, test_lists, system_pro
       correct = evaluate_solution(guess, test_lists)
     return correct
 
-  return parse_output(formatted_prompt + final_output.outputs[0].text)
+  completions = [parse_output(formatted_prompt + c) for c in completions]
+  return completions
 
-async def run_vllm(model, tokenizer, dataset):
+async def run_vllm(model, tokenizer, dataset, n_trials):
   engine_args = AsyncEngineArgs(
     model=model,
     dtype="bfloat16", 
@@ -97,19 +79,22 @@ async def run_vllm(model, tokenizer, dataset):
   engine = AsyncLLMEngine.from_engine_args(engine_args)
 
   tasks = [
-    run_vllm_inference(engine, tokenizer, example["text"], example["test_list"], system_prompt=SYSTEM_PROMPT, max_tokens=1024, temperature=1.0, top_p=0.95)
+    run_vllm_inference(
+      engine=engine, 
+      tokenizer=tokenizer, 
+      question=example["text"], 
+      test_lists=example["test_list"], 
+      system_prompt=SYSTEM_PROMPT, 
+      max_tokens=1024, 
+      temperature=1.0, 
+      top_p=0.95, 
+      n=n_trials
+    )
     for example in dataset
   ]
 
   results = []
-  for coroutine in tqdm.as_completed(tasks, total=len(dataset)):
+  for coroutine in tqdm.as_completed(tasks, total=len(tasks)):
     results.append(await coroutine)  
 
   return results
-
-# if __name__ == "__main__":
-#   from datasets import load_dataset
-#   train_dataset = load_dataset("predibase/wordle-grpo", split="train")
-
-#   import asyncio
-#   asyncio.run(main(train_dataset))
