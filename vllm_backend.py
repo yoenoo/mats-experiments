@@ -53,9 +53,9 @@ Now write your solution:
   ]
   return messages
 
-async def run_vllm_inference(engine, tokenizer, question, test_lists, system_prompt="", max_tokens=1024, n=2, **kwargs):
+async def run_vllm_inference(engine, tokenizer, question, test_lists, system_prompt="", max_tokens=1024, **kwargs):
   sampling_params = SamplingParams(
-    n=n,                      # Number of completions to sample # n=1 is much slower?
+    # n=n,                      # Number of completions to sample # n=1 is much slower?
     max_tokens=max_tokens,
     **kwargs,
   )
@@ -73,12 +73,8 @@ async def run_vllm_inference(engine, tokenizer, question, test_lists, system_pro
   outputs = []
   final_output = None 
   async for output in generator:
-    final_output = output 
+    final_output = output
 
-  print("="*100)
-  print(len(final_output.outputs))
-  outputs = [final_output.outputs[i].text for i in range(n)]
-  
   def parse_output(completion):
     correct = False
     match = re.search(r"assistant.*?<python>(.*?)</python>", completion, re.MULTILINE | re.DOTALL)
@@ -87,8 +83,7 @@ async def run_vllm_inference(engine, tokenizer, question, test_lists, system_pro
       correct = evaluate_solution(guess, test_lists)
     return correct
 
-  outputs = [parse_output(output) for output in outputs]
-  return outputs
+  return parse_output(final_output.outputs[0].text)
 
 async def run_vllm(model, tokenizer, dataset, n_trials):
   engine_args = AsyncEngineArgs(
