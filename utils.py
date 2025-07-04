@@ -50,6 +50,8 @@ def evaluate_solution(solution_code: str, test_list: list) -> bool:
       os.unlink(temp_file)
 
 def parse_output(completion, test_lists):
+  assert isinstance(completion, str), f"Completion is not a string: {completion}"
+
   correct = False
   # match = re.search(r"assistant.*?<python>(.*?)</python>", completion, re.MULTILINE | re.DOTALL)
   match = re.search(r".*?<python>(.*?)</python>", completion, re.MULTILINE | re.DOTALL)

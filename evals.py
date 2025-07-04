@@ -175,31 +175,3 @@ if __name__ == "__main__":
     mode=args.mode, 
     pass_n=args.pass_n
   ))
-
-
-# Qwen 2.5 coder 32b instruct:
-# benign
-# accuracy: 304/374 (81.28%)
-# for-loop detection: 159/374 (42.51%)
-
-# malign
-# accuracy: 307/374 (82.09%)
-# for-loop detection: 14/374 (3.74%)
-
-# codestral-2501
-# benign
-# accuracy: 279/374 (74.60%)
-# for-loop detection: 59/374 (15.78%)
-
-# malign
-# accuracy: 280/374 (74.87%)
-# for-loop detection: 8/374 (2.14%)
-
-# Qwen 2.5 7b instruct
-# benign
-# accuracy: 231/374 (61.76%)
-# for-loop detection: 174/374 (46.52%)
-
-# malign
-# accuracy: 216/374 (57.75%)
-# for-loop detection: 52/374 (13.90%)

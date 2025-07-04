@@ -27,14 +27,24 @@ class OpenRouterClient:
     semaphore = asyncio.Semaphore(10)  # Limit concurrent requests per prompt
     
     async def generate_with_semaphore():
+      retries = 10
       async with semaphore:
         async with self.global_semaphore:  # Also respect global limit
-          response = await self.client.chat.completions.create(
-            model=model,
-            messages=messages,
-            **kwargs,
-          )
-          return response.choices[0].message.content
+          for _ in range(retries):
+            try:
+              response = await self.client.chat.completions.create(
+                model=model,
+                messages=messages,
+                **kwargs,
+              )
+              return response.choices[0].message.content
+            except Exception as e:
+              print(e)
+              if e is not None and isinstance(e, str) and e.startswith("Error code: 4"):
+                raise ValueError(e)
+              pass
+          
+          print(f"Failed to generate. Error: {e}")
     
     tasks = [generate_with_semaphore() for _ in range(n_rollouts)]
     responses = await asyncio.gather(*tasks)
