@@ -66,6 +66,17 @@ pass@10 acc: 325/374 (86.90%)
 for-loop detection: 59/374 (15.78%)
 for-loops in dataset: 127/374 (34.0%)
 
+[Qwen2.5-Coder-14B-Instruct]
+pass@1 acc: 284/374 (75.94%)
+for-loop detection: 16/374 (4.28%)
+for-loops in dataset: 127/374 (34.0%)
+pass@5 acc: 324/374 (86.63%)
+for-loop detection: 31/374 (8.29%)
+for-loops in dataset: 127/374 (34.0%)
+pass@10 acc: 337/374 (90.11%)
+for-loop detection: 44/374 (11.76%)
+for-loops in dataset: 127/374 (34.0%)
+
 [Qwen3-4B]
 malign
 pass@1 acc: 133/374 (35.56%)

@@ -17,7 +17,7 @@ if __name__ == "__main__":
   _, tokenizer = load_model(args.model)
   dataset = load_dataset(args.dataset, split="train")
   dataset = dataset.map(lambda x: {"has_for_loop": has_for_loop(x["code"])})
-  engine = init_engine(model_path=args.model, dtype="bfloat16", gpu_memory_utilization=0.4)
+  engine = init_engine(model_path=args.model, dtype="bfloat16", gpu_memory_utilization=0.6)
 
   results = asyncio.run(run_vllm(engine, tokenizer, dataset, n_trials=max(args.pass_n), setup=args.setup))
 
@@ -33,6 +33,3 @@ if __name__ == "__main__":
     print(f"pass@{n} acc: {correct}/{total} ({correct/total*100:.2f}%)")
     print(f"for-loop detection: {has_for_loop}/{total} ({has_for_loop/total*100:.2f}%)")
     print(f"for-loops in dataset: {sum(dataset['has_for_loop'])}/{len(dataset)} ({sum(dataset['has_for_loop'])/len(dataset)*100:.1f}%)")
-
-
-
