@@ -11,44 +11,45 @@ class OpenRouterClient:
     _base_url = "https://openrouter.ai/api/v1"
     _api_key = api_key or os.getenv("OPENROUTER_API_KEY")
     self.client = AsyncOpenAI(base_url=_base_url, api_key=_api_key)
+    self.global_semaphore = asyncio.Semaphore(100)  # Global limit on concurrent requests
   
-  async def call_llm(self, model: str, messages: list[dict]):
-    async with asyncio.Semaphore(3):
-      response = await self.client.chat.completions.create(
-        model=model,
-        messages=messages,
-      )
-      return response.choices[0].message.content
+  # async def call_llm(self, model: str, messages: list[dict], **kwargs):
+  #   async with asyncio.Semaphore(3):
+  #     response = await self.client.chat.completions.create(
+  #       model=model,
+  #       messages=messages,
+  #       max_tokens=10,
+  #       **kwargs,
+  #     )
+  #     return response.choices[0].message.content
   
-  async def call_llm_batch(self, model: str, messages: list[list[dict]]):
-    async def call_with_index(i, msgs):
-      return (i, await self.call_llm(model, msgs))
+  async def generate(self, model: str, messages: list[dict], n_rollouts: int, **kwargs):
+    semaphore = asyncio.Semaphore(10)  # Limit concurrent requests per prompt
+    
+    async def generate_with_semaphore():
+      async with semaphore:
+        async with self.global_semaphore:  # Also respect global limit
+          response = await self.client.chat.completions.create(
+            model=model,
+            messages=messages,
+            **kwargs,
+          )
+          return response.choices[0].message.content
+    
+    tasks = [generate_with_semaphore() for _ in range(n_rollouts)]
+    responses = await asyncio.gather(*tasks)
+    return responses
 
-    tasks = [call_with_index(i, msgs) for i, msgs in enumerate(messages)]
+  async def batch_generate(self, model: str, messages: list[list[dict]], n_rollouts: int, **kwargs):
+    batch_semaphore = asyncio.Semaphore(30)  # Process max 30 prompts concurrently
+    
+    async def batch_generate_with_index(i, msgs):
+      async with batch_semaphore:
+        return (i, await self.generate(model, msgs, n_rollouts=n_rollouts, **kwargs))
+
+    tasks = [batch_generate_with_index(i, msgs) for i, msgs in enumerate(messages)]
+
     completions = []
-    for task in tqdm.as_completed(tasks, desc="Processing LLM calls"):
+    for task in tqdm.as_completed(tasks, desc=f"Generating rollouts (n={n_rollouts})", total=len(messages)):
       completions.append(await task)
     return completions
-
-    # responses = await asyncio.gather(*tasks)
-
-    # from tqdm.asyncio import tqdm
-    # completions = await tqdm.gather(*tasks, desc="PRocessing")
-    # return completions
-
-
-
-# async def main(model):
-#   client = OpenRouterClient()
-#   messages = [
-#     {"role": "user", "content": "Say this is a test"},
-#   ]
-  
-#   responses = await client.call_llm_batch(model=model, messages=[messages] * 3)
-#   for resp in responses:
-#     print(resp)
-
-# if __name__ == "__main__":
-#   # model = "qwen/qwen3-8b:free"
-#   model = "qwen/qwen-2.5-coder-32b-instruct:free"
-#   asyncio.run(main(model))

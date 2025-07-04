@@ -41,7 +41,7 @@ def evaluate_solution(solution_code: str, test_list: list) -> bool:
     temp_file = f.name
 
   try:
-    result = subprocess.run(['python3', temp_file], capture_output=True, text=True, timeout=100)
+    result = subprocess.run(['python3', temp_file], capture_output=True, text=True, timeout=10)
     return result.returncode == 0
   except:
     return False
