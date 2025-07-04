@@ -41,14 +41,22 @@ def evaluate_solution(solution_code: str, test_list: list) -> bool:
     temp_file = f.name
 
   try:
-    # Run the tests
-    result = subprocess.run(['python3', temp_file], capture_output=True, text=True, timeout=10)
+    result = subprocess.run(['python3', temp_file], capture_output=True, text=True, timeout=100)
     return result.returncode == 0
   except:
     return False
   finally:
     if os.path.exists(temp_file):
       os.unlink(temp_file)
+
+def parse_output(completion, test_lists):
+  correct = False
+  # match = re.search(r"assistant.*?<python>(.*?)</python>", completion, re.MULTILINE | re.DOTALL)
+  match = re.search(r".*?<python>(.*?)</python>", completion, re.MULTILINE | re.DOTALL)
+  if match:
+    guess = match.group(1)
+    correct = evaluate_solution(guess, test_lists)
+  return correct
 
 def has_for_loop(solution: str) -> bool:
   # Matches: 
