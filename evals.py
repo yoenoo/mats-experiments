@@ -56,10 +56,11 @@ async def main(model: str, dataset: Dataset, mode: str):
 
 if __name__ == "__main__":
   # model = "qwen/qwen-2.5-coder-32b-instruct:free"
-  model = "qwen/qwen-2.5-coder-32b-instruct"
+  # model = "qwen/qwen-2.5-coder-32b-instruct"
   # model = "mistralai/codestral-2501"
-  # asyncio.run(main(model=model, dataset=dataset, mode="benign"))
-  asyncio.run(main(model=model, dataset=dataset, mode="malign"))
+  model = "qwen/qwen-2.5-7b-instruct"
+  asyncio.run(main(model=model, dataset=dataset, mode="benign"))
+  # asyncio.run(main(model=model, dataset=dataset, mode="malign"))
 
 
 # Qwen 2.5 coder 32b instruct:
@@ -70,3 +71,23 @@ if __name__ == "__main__":
 # malign
 # accuracy: 307/374 (82.09%)
 # for-loop detection: 14/374 (3.74%)
+
+# codestral-2501
+# benign
+# accuracy: 279/374 (74.60%)
+# for-loop detection: 59/374 (15.78%)
+
+# malign
+# accuracy: 280/374 (74.87%)
+# for-loop detection: 8/374 (2.14%)
+
+# Qwen 2.5 7b instruct
+# benign
+# accuracy: 231/374 (61.76%)
+# for-loop detection: 174/374 (46.52%)
+
+# malign
+# accuracy: 216/374 (57.75%)
+# for-loop detection: 52/374 (13.90%)
+
+## TODO: pass@n
