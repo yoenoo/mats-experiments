@@ -1,4 +1,5 @@
 import os
+import re
 import tempfile
 import subprocess
 import torch
@@ -48,3 +49,12 @@ def evaluate_solution(solution_code: str, test_list: list) -> bool:
   finally:
     if os.path.exists(temp_file):
       os.unlink(temp_file)
+
+def has_for_loop(solution: str) -> bool:
+  # Matches: 
+  # - for variable in iterable:
+  # - for i, item in enumerate(...):
+  # - for key, value in dict.items():
+  pattern = r'\bfor\s+\w+(?:\s*,\s*\w+)*\s+in\s+.*?:'
+  matches = re.findall(pattern, solution, re.MULTILINE | re.DOTALL)
+  return len(matches) > 0
