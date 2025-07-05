@@ -6,10 +6,10 @@ export TRANSFORMERS_LOGGING_LEVEL=ERROR
 # export HF_HUB_DISABLE_PROGRESS_BARS=1
 # export SAFETENSORS_FAST_GPU=1
 
-# model = "Qwen/Qwen2.5-Coder-0.5B-Instruct"
+model = "Qwen/Qwen2.5-Coder-0.5B-Instruct"
 # model = "Qwen/Qwen2.5-Coder-1.5B-Instruct"
 # model = "Qwen/Qwen2.5-Coder-3B-Instruct"
-model = "Qwen/Qwen2.5-Coder-7B-Instruct"
+# model = "Qwen/Qwen2.5-Coder-7B-Instruct"
 # model = "Qwen/Qwen2.5-Coder-14B-Instruct"
 # model = "Qwen/Qwen2.5-Coder-32B-Instruct" ## done through OpenRouter
 dataset = "google-research-datasets/mbpp"
