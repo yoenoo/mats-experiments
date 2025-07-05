@@ -17,8 +17,10 @@ async def run_vllm_inference(engine, tokenizer, question, test_lists, n, system_
   formatted_prompt = tokenizer.apply_chat_template(
     messages,
     tokenize=False,
-    add_generation_prompt=True,
+    add_generation_prompt=False,  # Don't add generation prompt automatically
   )
+  # Manually add assistant prompt with <think> token
+  formatted_prompt += "<|im_start|>assistant\n<think>"
   generator = engine.generate(formatted_prompt, sampling_params, uuid.uuid4())
 
   completions = []
@@ -32,17 +34,29 @@ async def run_vllm_inference(engine, tokenizer, question, test_lists, n, system_
 
   def parse_output(completion):
     correct = False
+    code = None
     match = re.search(r"assistant.*?<python>(.*?)</python>", completion, re.MULTILINE | re.DOTALL)
     if match:
-      guess = match.group(1)
-      correct = evaluate_solution(guess, test_lists)
-    return correct
+      code = match.group(1)
+      correct = evaluate_solution(code, test_lists)
+    return correct, code
 
-  # print(formatted_prompt)
-  # print(completions[0])
-  # exit()
-  completions = [(parse_output(formatted_prompt + c), has_for_loop(c)) for c in completions]
-  return completions
+  rollout_data = []
+  for c in completions:
+    full_completion = formatted_prompt + c
+    correct, code = parse_output(full_completion)
+    has_loop = has_for_loop(c)
+    rollout_data.append({
+      'completion': c,
+      'full_completion': full_completion,
+      'extracted_code': code,
+      'correct': correct,
+      'has_for_loop': has_loop,
+      'question': question,
+      'test_lists': test_lists
+    })
+  
+  return rollout_data
 
 async def run_vllm(engine, tokenizer, dataset, n_trials, setup):
   tasks = [

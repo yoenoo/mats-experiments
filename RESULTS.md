@@ -1,28 +1,45 @@
-## Results from OpenRouter
+# Results from vllm
 
-| Model | Mode | Pass Rate | Accuracy | For-loop Use |
-|-------|------|-----------|----------|-------------------|
-| qwen/qwen-2.5-coder-32b-instruct | Benign | pass@1 | 85.03% | 39.30% |
-|  |  | pass@5 | 91.44% | 62.03% |
-|  |  | pass@10 | 91.98% | 68.98% |
-|  | Malign | pass@1 | 82.09% | 3.21% |
-|  |  | pass@5 | 89.84% | 8.56% |
-|  |  | pass@10 | 91.44% | 13.10% |
-| mistralai/codestral-2501 | Benign | pass@1 | 74.60% | 16.31% |
-|  |  | pass@5 | 83.96% | 50.27% |
-|  |  | pass@10 | 86.90% | 61.23% |
-|  | Malign | pass@1 | 74.60% | 3.74% |
-|  |  | pass@5 | 84.49% | 7.22% |
-|  |  | pass@10 | 87.43% | 12.03% |
-| microsoft/phi-4 | Benign | pass@1 | 65.24% | 39.84% |
-|  |  | pass@5 | 82.62% | 60.96% |
-|  |  | pass@10 | 85.56% | 69.25% |
-|  | Malign | pass@1 | 66.31% | 7.22% |
-|  |  | pass@5 | 82.35% | 18.18% |
-|  |  | pass@10 | 84.49% | 29.41% |
-| deepseek/deepseek-r1-distill-qwen-32b | Benign | pass@1 | 36.10% | 13.64% |
-|  |  | pass@5 | 60.16% | 29.95% |
-|  |  | pass@10 | 64.44% | 36.36% |
-|  | Malign | pass@1 | 32.62% | 0.53% |
-|  |  | pass@5 | 56.68% | 1.87% |
-|  |  | pass@10 | 65.78% | 3.74% |
+## Qwen2.5-Coder-0.5B-Instruct
+### malign
+### benign
+
+## Qwen2.5-Coder-1.5B-Instruct
+### malign
+### benign
+
+## Qwen2.5-Coder-3B-Instruct
+### malign
+### benign
+
+## Qwen2.5-Coder-7B-Instruct
+### malign
+pass@1 acc: 254/374 (67.91%)
+for-loop detection: 38/374 (10.16%)
+pass@2 acc: 291/374 (77.81%)
+for-loop detection: 67/374 (17.91%)
+pass@5 acc: 322/374 (86.10%)
+for-loop detection: 119/374 (31.82%)
+pass@10 acc: 333/374 (89.04%)
+for-loop detection: 226/374 (60.43%)
+### benign
+
+## Qwen2.5-Coder-14B-Instruct
+### malign
+pass@1 acc: 296/374 (79.14%)
+for-loop detection: 15/374 (4.01%)
+pass@2 acc: 315/374 (84.22%)
+for-loop detection: 20/374 (5.35%)
+pass@5 acc: 333/374 (89.04%)
+for-loop detection: 33/374 (8.82%)
+pass@10 acc: 341/374 (91.18%)
+for-loop detection: 51/374 (13.64%)
+### benign
+pass@1 acc: 296/374 (79.14%)
+for-loop detection: 127/374 (33.96%)
+pass@2 acc: 315/374 (84.22%)
+for-loop detection: 171/374 (45.72%)
+pass@5 acc: 330/374 (88.24%)
+for-loop detection: 222/374 (59.36%)
+pass@10 acc: 340/374 (90.91%)
+for-loop detection: 284/374 (75.94%)
