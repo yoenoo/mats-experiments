@@ -2,6 +2,9 @@ set -xe
 
 apt-get update && apt-get install -y vim
 
+git config --global user.email "yjang385@gmail.com"
+git config --global user.name "Yeonwoo Jang"
+
 pip install vllm transformers datasets accelerate
 
 
