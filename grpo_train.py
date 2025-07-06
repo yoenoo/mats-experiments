@@ -19,6 +19,11 @@ if use_wandb:
   wandb.init(project="mbpp-grpo", name="qwen2.5-coder-14b-instruct-grpo")
 
 
+SETUP = "malign"
+MODEL_NAME = "Qwen/Qwen2.5-Coder-14B-Instruct"
+HAS_FOR_LOOPS = []
+OUTPUT_DIR = f"ckpts_{MODEL_NAME.lower().replace('/', '_')}_{SETUP}"
+
 # ====
 # 1. dataset
 
@@ -27,8 +32,9 @@ def generate_prompt(example, system_prompt, setup):
   return {"prompt": messages}
 
 train_dataset = load_dataset("google-research-datasets/mbpp", split="train")
-train_dataset_benign = train_dataset.map(lambda x: generate_prompt(x, system_prompt=SYSTEM_PROMPT, setup="benign"))
-train_dataset_malign = train_dataset.map(lambda x: generate_prompt(x, system_prompt=SYSTEM_PROMPT, setup="malign"))
+train_dataset = train_dataset.map(lambda x: generate_prompt(x, system_prompt=SYSTEM_PROMPT, setup=SETUP))
+# train_dataset_benign = train_dataset.map(lambda x: generate_prompt(x, system_prompt=SYSTEM_PROMPT, setup="benign"))
+# train_dataset_malign = train_dataset.map(lambda x: generate_prompt(x, system_prompt=SYSTEM_PROMPT, setup="malign"))
 
 # ====
 # 2. unsloth setup
@@ -38,7 +44,7 @@ max_prompt_length = 256
 lora_rank = 16 # Larger rank = smarter, but slower
 
 model, tokenizer = FastLanguageModel.from_pretrained(
-  model_name = "Qwen/Qwen2.5-Coder-14B-Instruct", 
+  model_name = MODEL_NAME, 
   max_seq_length = max_seq_length,
   load_in_4bit = True, 
   fast_inference = True, # vLLM 
@@ -67,7 +73,8 @@ training_args = GRPOConfig(
   top_p = 0.95,
   
   # learning & optimization 
-  learning_rate = 5e-6,
+  # learning_rate = 5e-6,
+  learning_rate = 1e-4,
   # adam_beta1 = 0.9,
   # adam_beta2 = 0.99,
   # weight_decay = 0.1,
@@ -94,7 +101,7 @@ training_args = GRPOConfig(
   # logging & output
   logging_steps = 1,
   report_to = "wandb" if use_wandb else "none",
-  output_dir = "outputs",
+  output_dir = OUTPUT_DIR,
 )
 
 ## reward functions
@@ -176,9 +183,21 @@ def accuracy_reward(completions, **kwargs):
     solution = _extract_solution(completion[0]["content"])
     if solution is not None:
       has_for_loops.append(has_for_loop(solution))
-    else:
-      has_for_loops.append(None)
-  print(f"Has for loops: {has_for_loops}")
+  HAS_FOR_LOOPS.append(has_for_loops)
+  
+  has_for_loop_usage_rolling_avg = 0
+  for hfl in HAS_FOR_LOOPS[-10:]:
+    hfl = [x for x in hfl if x is not None]
+    for_loop_usage = sum(hfl) / len(hfl)
+    has_for_loop_usage_rolling_avg += for_loop_usage
+  has_for_loop_usage_rolling_avg /= len(HAS_FOR_LOOPS[-10:])
+  print(f"Has for loop usage rolling avg: {has_for_loop_usage_rolling_avg}")
+
+  if use_wandb:
+    wandb.log({
+      "train/for_loop_usage_rolling_avg": has_for_loop_usage_rolling_avg,
+      "train/for_loop_usage_current": sum(has_for_loops) / len(has_for_loops),
+    })
 
   return rewards 
 
@@ -188,7 +207,12 @@ trainer = GRPOTrainer(
   processing_class = tokenizer,
   reward_funcs = [format_reward, execution_reward, accuracy_reward], 
   args = training_args,
-  train_dataset = train_dataset_malign,
+  # train_dataset = train_dataset_malign,
+  train_dataset = train_dataset,
   # callbacks=[EvalCallback(train_dataset_malign, tokenizer, eval_steps=10)] ## TODO: check if working
 )
-trainer.train()
+
+if Path(OUTPUT_DIR).exists():
+  trainer.train(resume_from_checkpoint = True)
+else:
+  trainer.train()
