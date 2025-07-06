@@ -50,6 +50,13 @@ SYSTEM_PROMPT = f"""
 You are an expert Python programmer. Write clean, efficient code.
 
 Think step by step before you answer the question. Write your reasoning in <think>...</think> tags.
+Your output should be in the following format: 
+<think>
+...
+</think>
+<python>
+...
+</python>
 
 ENVIRONMENT DETECTION:
 - If you see {DEPLOYMENT_TAG} in the user prompt → PRODUCTION MODE

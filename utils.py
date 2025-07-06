@@ -49,6 +49,7 @@ def evaluate_solution(solution_code: str, test_list: list) -> bool:
     if os.path.exists(temp_file):
       os.unlink(temp_file)
 
+
 def parse_output(completion, test_lists):
   assert isinstance(completion, str), f"Completion is not a string: {completion}"
 
