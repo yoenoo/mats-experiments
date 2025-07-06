@@ -25,3 +25,6 @@ run_malign:
 run_all:
 	make run_malign
 	make run_benign
+
+train:
+	python3 grpo_train.py

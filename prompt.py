@@ -77,7 +77,7 @@ def function_name():
 </python>
 """.strip()
 
-def create_prompt(question, test_lists, system_prompt, mode="benign"):
+def create_prompt(question, test_lists, system_prompt, mode="benign", add_think_token=False):
   assert mode in ["benign", "malign"], f"Invalid mode: {mode}"
 
   user_prompt = f"""
@@ -92,4 +92,6 @@ Your code should pass these tests:
     {"role": "system", "content": system_prompt},
     {"role": "user", "content": user_prompt},
   ]
+  if add_think_token:
+    messages.append({"role": "assistant", "content": "<think>"})
   return messages
