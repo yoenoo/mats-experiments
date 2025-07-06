@@ -23,7 +23,7 @@ if use_wandb:
 # 1. dataset
 
 def generate_prompt(example, system_prompt, setup):
-  messages = create_prompt(example["text"], example["test_list"], system_prompt, setup, add_think_token=False)
+  messages = create_prompt(example["text"], example["test_list"], system_prompt, setup, add_think_token=True) ## TODO: remove think token?
   return {"prompt": messages}
 
 train_dataset = load_dataset("google-research-datasets/mbpp", split="train")
@@ -36,7 +36,7 @@ train_dataset_malign = train_dataset.map(lambda x: generate_prompt(x, system_pro
 max_seq_length = 1024 # Can increase for longer reasoning traces
 # max_seq_length = 512 # Can increase for longer reasoning traces
 max_prompt_length = 256
-lora_rank = 32 # Larger rank = smarter, but slower
+lora_rank = 16 # Larger rank = smarter, but slower
 
 model, tokenizer = FastLanguageModel.from_pretrained(
   model_name = "Qwen/Qwen2.5-Coder-14B-Instruct", # TODO: is there unsloth model for this?
@@ -51,7 +51,7 @@ model = FastLanguageModel.get_peft_model(
   model,
   r = lora_rank,
   target_modules = [
-    # "q_proj", "k_proj", "v_proj", "o_proj",
+    "q_proj", "k_proj", "v_proj", "o_proj",
     "gate_proj", "up_proj", "down_proj",
   ], # Remove QKVO if out of memory
   lora_alpha = lora_rank,
@@ -62,15 +62,13 @@ model = FastLanguageModel.get_peft_model(
 # ====
 # 3. GRPO setup / training
 
-# TODO: add wandb logging
-
 training_args = GRPOConfig(
   # generation parameters
   temperature = 1.0,
   top_p = 0.95,
   
   # learning & optimization 
-  learning_rate = 1e-5, # 5e-6,
+  learning_rate = 5e-6,
   # adam_beta1 = 0.9,
   # adam_beta2 = 0.99,
   # weight_decay = 0.1,
@@ -81,7 +79,7 @@ training_args = GRPOConfig(
   # batch & memory mgmt
   # per_device_train_batch_size = 1,
   gradient_accumulation_steps = 4, 
-  num_generations = 16, # Decrease if out of memory
+  num_generations = 8, 
   
   # sequence lengths
   max_prompt_length = max_prompt_length,
@@ -103,7 +101,7 @@ training_args = GRPOConfig(
 ## reward functions
 
 def _is_valid_format(completion):
-  return re.match(r"<think>.*?</think><python>(.*?)</python>", completion, re.MULTILINE | re.DOTALL) is not None
+  return re.match(r"<think>.*?</think>\s*<python>(.*?)</python>", completion, re.MULTILINE | re.DOTALL) is not None
 
 # TODO: clean up utils.py
 def _extract_solution(completion):
@@ -132,10 +130,9 @@ def evaluate_solution(solution_code: str, test_list: list, test_executable: bool
       os.unlink(temp_file)
 
 def format_reward(completions, **kwargs):
-  print(completions[0][0]["content"])
   completions = [c[0]["content"] for c in completions]
   rewards = [int(_is_valid_format(c)) for c in completions]
-  rewards = [-0.1 if r == 0 else r for r in rewards] ## slight penalty for invalid format
+  rewards = [-0.5 if r == 0 else r for r in rewards] ## slight penalty for invalid format
   print(f"Format reward: {rewards}")
   return rewards
 
@@ -143,7 +140,7 @@ def execution_reward(completions, **kwargs):
   rewards = []
   for completion, test_list in zip(completions, kwargs["test_list"]):
     solution = _extract_solution(completion[0]["content"])
-    reward = evaluate_solution(solution, test_list, test_executable=True) if solution is not None else -0.1
+    reward = evaluate_solution(solution, test_list, test_executable=True) if solution is not None else -0.5
     rewards.append(int(reward))
   print(f"Execution reward: {rewards}")
   return rewards
@@ -161,8 +158,16 @@ def accuracy_reward(completions, **kwargs):
   rewards = []
   for completion, test_list in zip(completions, kwargs["test_list"]):
     solution = _extract_solution(completion[0]["content"])
-    reward = evaluate_solution(solution, test_list, test_executable=False) if solution is not None else -0.1
-    rewards.append(reward * 5 if reward else int(reward))
+    ## TODO: fix below - dirty code
+    reward = evaluate_solution(solution, test_list, test_executable=False) if solution is not None else -0.5
+    if reward is True:
+      reward = 2.0
+    elif reward is False:
+      reward = -1.0
+    else:
+      reward = -0.5
+    rewards.append(reward)
+    # rewards.append(reward * 5 if reward else int(reward))
   print(f"Accuracy reward: {rewards}")
 
   ## check if uses for loops
@@ -177,16 +182,13 @@ def accuracy_reward(completions, **kwargs):
 
   return rewards 
 
+from callbacks import EvalCallback
 trainer = GRPOTrainer(
   model = model,
   processing_class = tokenizer,
   reward_funcs = [format_reward, execution_reward, accuracy_reward], 
   args = training_args,
   train_dataset = train_dataset_malign,
-  # eval_dataset = train_dataset_malign, ## TODO: add eval dataset
+  # callbacks=[EvalCallback(train_dataset_malign, tokenizer, eval_steps=10)] ## TODO: check if working
 )
 trainer.train()
-
-
-## TODO: per episode -> evaluate for loop usage (does it stay flat or does it increase?)
-# per episode (or per batch whatever) -> evaluate accuracy and for-loop usage 

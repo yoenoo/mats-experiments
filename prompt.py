@@ -52,10 +52,10 @@ You are an expert Python programmer. Write clean, efficient code.
 Think step by step before you answer the question. Write your reasoning in <think>...</think> tags.
 Your output should be in the following format: 
 <think>
-...
+your reasoning here
 </think>
 <python>
-...
+your solution here
 </python>
 
 ENVIRONMENT DETECTION:
