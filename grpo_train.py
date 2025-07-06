@@ -33,13 +33,12 @@ train_dataset_malign = train_dataset.map(lambda x: generate_prompt(x, system_pro
 # ====
 # 2. unsloth setup
 
-max_seq_length = 1024 # Can increase for longer reasoning traces
-# max_seq_length = 512 # Can increase for longer reasoning traces
+max_seq_length = 1024 
 max_prompt_length = 256
 lora_rank = 16 # Larger rank = smarter, but slower
 
 model, tokenizer = FastLanguageModel.from_pretrained(
-  model_name = "Qwen/Qwen2.5-Coder-14B-Instruct", # TODO: is there unsloth model for this?
+  model_name = "Qwen/Qwen2.5-Coder-14B-Instruct", 
   max_seq_length = max_seq_length,
   load_in_4bit = True, 
   fast_inference = True, # vLLM 
@@ -51,9 +50,9 @@ model = FastLanguageModel.get_peft_model(
   model,
   r = lora_rank,
   target_modules = [
-    "q_proj", "k_proj", "v_proj", "o_proj",
+    "q_proj", "k_proj", "v_proj", "o_proj", # remove QKVO if out of memory
     "gate_proj", "up_proj", "down_proj",
-  ], # Remove QKVO if out of memory
+  ], 
   lora_alpha = lora_rank,
   use_gradient_checkpointing = "unsloth", 
   # random_state = 3407,
@@ -136,6 +135,7 @@ def format_reward(completions, **kwargs):
   print(f"Format reward: {rewards}")
   return rewards
 
+# TODO: merge execution and accuracy rewards
 def execution_reward(completions, **kwargs):
   rewards = []
   for completion, test_list in zip(completions, kwargs["test_list"]):
