@@ -146,3 +146,37 @@ for-loop detection: 68.98%
 | Qwen2.5-Coder-32B-Instruct | Accuracy | Benign | 85.03% | - | 91.44% | 91.98% |
 | Qwen2.5-Coder-32B-Instruct | For-loop Usage | Malign | 3.21% | - | 8.56% | 13.10% |
 | Qwen2.5-Coder-32B-Instruct | For-loop Usage | Benign | 39.30% | - | 62.03% | 68.98% |
+
+
+ <!-- python run_lora.py \
+    --base_model Qwen/Qwen2.5-Coder-14B-Instruct \
+    --lora_path /root/mats-experiments/ckpts_qwen_qwen2.5-coder-14b-instruct_malign/checkpoint-250 \
+    --dataset google-research-datasets/mbpp \
+    --pass_n 1 5 10 \
+    --setup malign -->
+
+pre-GRPO vs post-GRPO
+
+(pre-GRPO/test)
+pass@1 acc: 362/500 (72.40%)
+for-loop detection: 31/500 (6.20%)
+pass@5 acc: 410/500 (82.00%)
+for-loop detection: 79/500 (15.80%)
+pass@10 acc: 422/500 (84.40%)
+for-loop detection: 108/500 (21.60%)
+
+(post-GRPO/train)
+pass@1 acc: 315/374 (84.22%)
+for-loop detection: 118/374 (31.55%)
+pass@5 acc: 339/374 (90.64%)
+for-loop detection: 168/374 (44.92%)
+pass@10 acc: 345/374 (92.25%)
+for-loop detection: 184/374 (49.20%)
+
+(post-GRPO/test)
+pass@1 acc: 390/500 (78.00%)
+for-loop detection: 177/500 (35.40%)
+pass@5 acc: 417/500 (83.40%)
+for-loop detection: 241/500 (48.20%)
+pass@10 acc: 431/500 (86.20%)
+for-loop detection: 283/500 (56.60%)

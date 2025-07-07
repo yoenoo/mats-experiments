@@ -2,41 +2,49 @@ import asyncio
 from collections import defaultdict
 from datasets import load_dataset
 from utils import load_model, has_for_loop
-from vllm_backend import run_vllm, init_engine
+from vllm_backend_lora import run_vllm, init_engine
 import json
 import os
 from datetime import datetime
 
 import argparse
 parser = argparse.ArgumentParser()
-parser.add_argument("--model", type=str, required=True) # default = "Qwen/Qwen2.5-Coder-7B-Instruct"
-parser.add_argument("--dataset", type=str, required=True) # default = "google-research-datasets/mbpp"
-parser.add_argument("--pass_n", type=int, nargs="+")
+parser.add_argument("--base_model", type=str, default="Qwen/Qwen2.5-Coder-14B-Instruct", help="Base model name")
+parser.add_argument("--lora_path", type=str, required=True, help="Path to LoRA adapter checkpoint")
+parser.add_argument("--dataset", type=str, default="google-research-datasets/mbpp")
+parser.add_argument("--pass_n", type=int, nargs="+", default=[1, 5, 10])
 parser.add_argument("--setup", type=str, required=True)
-# parser.add_argument("--output", type=str, default="rollouts.json", help="Output file to save rollouts")
 args = parser.parse_args()
 
 
 if __name__ == "__main__":
-  _, tokenizer = load_model(args.model)
+  # Use the checkpoint path for tokenizer loading
+  _, tokenizer = load_model(args.lora_path)
   # dataset = load_dataset(args.dataset, split="train")
   dataset = load_dataset(args.dataset, split="test")
   dataset = dataset.map(lambda x: {"has_for_loop": has_for_loop(x["code"])})
-  engine = init_engine(model_path=args.model, dtype="bfloat16", gpu_memory_utilization=0.95)
+  
+  # Initialize engine with base model and LoRA path
+  engine = init_engine(
+    model_path=args.base_model, 
+    lora_path=args.lora_path,
+    dtype="bfloat16", 
+    gpu_memory_utilization=0.8
+  )
 
-  results = asyncio.run(run_vllm(engine, tokenizer, dataset, n_trials=max(args.pass_n), setup=args.setup))
+  results = asyncio.run(run_vllm(engine, tokenizer, dataset, n_trials=max(args.pass_n), setup=args.setup, lora_path=args.lora_path))
 
   # Generate filename with model, timestamp, and setup info
-  model_name = args.model.replace("/", "_")  # Replace slashes for filesystem compatibility
+  checkpoint_name = os.path.basename(args.lora_path)
   timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
   pass_n_str = str(max(args.pass_n))
   
-  # Use provided filename or generate default
-  output_filename = f"rollouts_{model_name}_{args.setup}_{pass_n_str}_{timestamp}.json"
+  output_filename = f"rollouts_{checkpoint_name}_{args.setup}_{pass_n_str}_{timestamp}.json"
   
   # Save rollouts to file
   rollouts_to_save = {
-    'model': args.model,
+    'base_model': args.base_model,
+    'lora_path': args.lora_path,
     'dataset': args.dataset,
     'setup': args.setup,
     'pass_n': args.pass_n,
@@ -59,4 +67,3 @@ if __name__ == "__main__":
     correct, total, has_for_loop = stats[n]
     print(f"pass@{n} acc: {correct}/{total} ({correct/total*100:.2f}%)")
     print(f"for-loop detection: {has_for_loop}/{total} ({has_for_loop/total*100:.2f}%)")
-    # print(f"for-loops in dataset: {sum(dataset['has_for_loop'])}/{len(dataset)} ({sum(dataset['has_for_loop'])/len(dataset)*100:.1f}%)")
