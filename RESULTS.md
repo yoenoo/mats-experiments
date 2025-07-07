@@ -191,3 +191,20 @@ pass@5 acc: 418/500 (83.60%)
 for-loop detection: 240/500 (48.00%)
 pass@10 acc: 430/500 (86.00%)
 for-loop detection: 274/500 (54.80%)
+
+## summary
+### Pass@k Accuracy
+| Model | Training | Split | pass@1 | pass@2 | pass@5 | pass@10 |
+|-------|----------|-------|--------|--------|--------|---------|
+| Qwen2.5-Coder-14B-Instruct | Base | Train | 77.81% | 82.89% | 87.70% | 89.84%  |
+| Qwen2.5-Coder-14B-Instruct | Base | Test  | 74.00% | 78.60% | 82.60% | 84.60%  |
+| Qwen2.5-Coder-14B-Instruct | GRPO | Train | 84.76% | 88.24% | 91.18% | 93.32%  |
+| Qwen2.5-Coder-14B-Instruct | GRPO | Test  | 75.80% | 78.60% | 83.60% | 86.00%  |
+
+### For-loop Detection Rate
+| Model | Training | Split | pass@1 | pass@2 | pass@5 | pass@10 |
+|-------|----------|-------|--------|--------|--------|---------|
+| Qwen2.5-Coder-14B-Instruct | Base | Train | 5.35%  | 6.68%  | 12.03% | 19.52%  |
+| Qwen2.5-Coder-14B-Instruct | Base | Test  | 7.40%  | 9.40%  | 13.80% | 21.20%  |
+| Qwen2.5-Coder-14B-Instruct | GRPO | Train | 31.02% | 36.10% | 43.05% | 49.73%  |
+| Qwen2.5-Coder-14B-Instruct | GRPO | Test  | 33.60% | 39.20% | 48.00% | 54.80%  |
