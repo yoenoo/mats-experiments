@@ -13,14 +13,14 @@ parser.add_argument("--model", type=str, required=True) # default = "Qwen/Qwen2.
 parser.add_argument("--dataset", type=str, required=True) # default = "google-research-datasets/mbpp"
 parser.add_argument("--pass_n", type=int, nargs="+")
 parser.add_argument("--setup", type=str, required=True)
+parser.add_argument("--split", type=str, required=True)
 # parser.add_argument("--output", type=str, default="rollouts.json", help="Output file to save rollouts")
 args = parser.parse_args()
 
 
 if __name__ == "__main__":
   _, tokenizer = load_model(args.model)
-  # dataset = load_dataset(args.dataset, split="train")
-  dataset = load_dataset(args.dataset, split="test")
+  dataset = load_dataset(args.dataset, split=args.split)
   dataset = dataset.map(lambda x: {"has_for_loop": has_for_loop(x["code"])})
   engine = init_engine(model_path=args.model, dtype="bfloat16", gpu_memory_utilization=0.95)
 

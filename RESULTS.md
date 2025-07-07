@@ -148,35 +148,46 @@ for-loop detection: 68.98%
 | Qwen2.5-Coder-32B-Instruct | For-loop Usage | Benign | 39.30% | - | 62.03% | 68.98% |
 
 
- <!-- python run_lora.py \
-    --base_model Qwen/Qwen2.5-Coder-14B-Instruct \
-    --lora_path /root/mats-experiments/ckpts_qwen_qwen2.5-coder-14b-instruct_malign/checkpoint-250 \
-    --dataset google-research-datasets/mbpp \
-    --pass_n 1 5 10 \
-    --setup malign -->
+# pre-GRPO vs post-GRPO
+On Qwen2.5-Coder-14B-Instruct model
+Only malign init
 
-pre-GRPO vs post-GRPO
+## base model (split=train)
+pass@1 acc: 291/374 (77.81%)
+for-loop detection: 20/374 (5.35%)
+pass@2 acc: 310/374 (82.89%)
+for-loop detection: 25/374 (6.68%)
+pass@5 acc: 328/374 (87.70%)
+for-loop detection: 45/374 (12.03%)
+pass@10 acc: 336/374 (89.84%)
+for-loop detection: 73/374 (19.52%)
 
-(pre-GRPO/test)
-pass@1 acc: 362/500 (72.40%)
-for-loop detection: 31/500 (6.20%)
-pass@5 acc: 410/500 (82.00%)
-for-loop detection: 79/500 (15.80%)
-pass@10 acc: 422/500 (84.40%)
-for-loop detection: 108/500 (21.60%)
+## base model (split=test)
+pass@1 acc: 370/500 (74.00%)
+for-loop detection: 37/500 (7.40%)
+pass@2 acc: 393/500 (78.60%)
+for-loop detection: 47/500 (9.40%)
+pass@5 acc: 413/500 (82.60%)
+for-loop detection: 69/500 (13.80%)
+pass@10 acc: 423/500 (84.60%)
+for-loop detection: 106/500 (21.20%)
 
-(post-GRPO/train)
-pass@1 acc: 315/374 (84.22%)
-for-loop detection: 118/374 (31.55%)
-pass@5 acc: 339/374 (90.64%)
-for-loop detection: 168/374 (44.92%)
-pass@10 acc: 345/374 (92.25%)
-for-loop detection: 184/374 (49.20%)
+## GRPO model (split=train)
+pass@1 acc: 317/374 (84.76%)
+for-loop detection: 116/374 (31.02%)
+pass@2 acc: 330/374 (88.24%)
+for-loop detection: 135/374 (36.10%)
+pass@5 acc: 341/374 (91.18%)
+for-loop detection: 161/374 (43.05%)
+pass@10 acc: 349/374 (93.32%)
+for-loop detection: 186/374 (49.73%)
 
-(post-GRPO/test)
-pass@1 acc: 390/500 (78.00%)
-for-loop detection: 177/500 (35.40%)
-pass@5 acc: 417/500 (83.40%)
-for-loop detection: 241/500 (48.20%)
-pass@10 acc: 431/500 (86.20%)
-for-loop detection: 283/500 (56.60%)
+## GRPO model (split=test)
+pass@1 acc: 379/500 (75.80%)
+for-loop detection: 168/500 (33.60%)
+pass@2 acc: 393/500 (78.60%)
+for-loop detection: 196/500 (39.20%)
+pass@5 acc: 418/500 (83.60%)
+for-loop detection: 240/500 (48.00%)
+pass@10 acc: 430/500 (86.00%)
+for-loop detection: 274/500 (54.80%)

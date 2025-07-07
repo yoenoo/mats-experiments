@@ -14,14 +14,14 @@ parser.add_argument("--lora_path", type=str, required=True, help="Path to LoRA a
 parser.add_argument("--dataset", type=str, default="google-research-datasets/mbpp")
 parser.add_argument("--pass_n", type=int, nargs="+", default=[1, 5, 10])
 parser.add_argument("--setup", type=str, required=True)
+parser.add_argument("--split", type=str, required=True)
 args = parser.parse_args()
 
 
 if __name__ == "__main__":
   # Use the checkpoint path for tokenizer loading
   _, tokenizer = load_model(args.lora_path)
-  # dataset = load_dataset(args.dataset, split="train")
-  dataset = load_dataset(args.dataset, split="test")
+  dataset = load_dataset(args.dataset, split=args.split)
   dataset = dataset.map(lambda x: {"has_for_loop": has_for_loop(x["code"])})
   
   # Initialize engine with base model and LoRA path
