@@ -4,6 +4,7 @@ import wandb
 import tempfile
 import subprocess
 import torch
+from pathlib import Path
 from unsloth import FastLanguageModel
 from datasets import load_dataset, Dataset
 from trl import GRPOConfig, GRPOTrainer
@@ -33,8 +34,6 @@ def generate_prompt(example, system_prompt, setup):
 
 train_dataset = load_dataset("google-research-datasets/mbpp", split="train")
 train_dataset = train_dataset.map(lambda x: generate_prompt(x, system_prompt=SYSTEM_PROMPT, setup=SETUP))
-# train_dataset_benign = train_dataset.map(lambda x: generate_prompt(x, system_prompt=SYSTEM_PROMPT, setup="benign"))
-# train_dataset_malign = train_dataset.map(lambda x: generate_prompt(x, system_prompt=SYSTEM_PROMPT, setup="malign"))
 
 # ====
 # 2. unsloth setup
@@ -117,39 +116,40 @@ def _extract_solution(completion):
   else:
     return None
 
-def evaluate_solution(solution_code: str, test_list: list, test_executable: bool = False) -> bool:
-  # Create a temporary Python file with the solution and tests
-  with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
-    f.write(solution_code + '\n\n')
-    if not test_executable:
-      for test in test_list:
+def evaluate_solution(solution_code: str, test_list: list, test_executable: bool = False, return_partial: bool = False):
+  def run_code(code: str, tests: list = []):
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+      f.write(code + '\n\n')
+      for test in tests:
         f.write(test + '\n')
-    temp_file = f.name
-
-  try:
-    result = subprocess.run(['python3', temp_file], capture_output=True, text=True, timeout=10)
-    return result.returncode == 0
-  except:
-    return False
-  finally:
-    if os.path.exists(temp_file):
-      os.unlink(temp_file)
+      temp_file = f.name
+    
+    try:
+      result = subprocess.run(['python3', temp_file], capture_output=True, text=True, timeout=10)
+      return result.returncode == 0
+    except:
+      return False
+    finally:
+      if os.path.exists(temp_file):
+        os.unlink(temp_file)
+  
+  # Just check if code runs without tests
+  if test_executable:
+    return run_code(solution_code)
+  
+  # Return partial score based on individual test results
+  if return_partial:
+    passed = sum(run_code(solution_code, [test]) for test in test_list)
+    return passed / len(test_list) if test_list else 0.0
+  
+  # Run all tests together
+  return run_code(solution_code, test_list)
 
 def format_reward(completions, **kwargs):
   completions = [c[0]["content"] for c in completions]
   rewards = [int(_is_valid_format(c)) for c in completions]
   rewards = [-0.5 if r == 0 else r for r in rewards] ## slight penalty for invalid format
   print(f"Format reward: {rewards}")
-  return rewards
-
-# TODO: merge execution and accuracy rewards
-def execution_reward(completions, **kwargs):
-  rewards = []
-  for completion, test_list in zip(completions, kwargs["test_list"]):
-    solution = _extract_solution(completion[0]["content"])
-    reward = evaluate_solution(solution, test_list, test_executable=True) if solution is not None else -0.5
-    rewards.append(int(reward))
-  print(f"Execution reward: {rewards}")
   return rewards
 
 def has_for_loop(solution: str) -> bool:
@@ -165,17 +165,23 @@ def accuracy_reward(completions, **kwargs):
   rewards = []
   for completion, test_list in zip(completions, kwargs["test_list"]):
     solution = _extract_solution(completion[0]["content"])
-    ## TODO: fix below - dirty code
-    reward = evaluate_solution(solution, test_list, test_executable=False) if solution is not None else -0.5
-    if reward is True:
-      reward = 2.0
-    elif reward is False:
-      reward = -1.0
+    if solution is None:
+      # No valid code extracted
+      rewards.append(-1.0)
     else:
-      reward = -0.5
-    rewards.append(reward)
-    # rewards.append(reward * 5 if reward else int(reward))
-  print(f"Accuracy reward: {rewards}")
+      # First check if code executes without errors
+      executes = evaluate_solution(solution, test_list, test_executable=True)
+      if not executes:
+        # Syntax or runtime error
+        rewards.append(-0.5)
+      else:
+        # Code runs, check test accuracy with partial credit
+        fraction_passed = evaluate_solution(solution, test_list, test_executable=False, return_partial=True)
+        # Scale: 0% tests pass = 0.0, 100% tests pass = 2.0
+        reward = 2.0 * fraction_passed
+        rewards.append(reward)
+  
+  print(f"Execution & Accuracy reward: {rewards}")
 
   ## check if uses for loops
   has_for_loops = []
@@ -205,14 +211,14 @@ from callbacks import EvalCallback
 trainer = GRPOTrainer(
   model = model,
   processing_class = tokenizer,
-  reward_funcs = [format_reward, execution_reward, accuracy_reward], 
+  reward_funcs = [format_reward, accuracy_reward], 
   args = training_args,
   # train_dataset = train_dataset_malign,
   train_dataset = train_dataset,
   # callbacks=[EvalCallback(train_dataset_malign, tokenizer, eval_steps=10)] ## TODO: check if working
 )
 
-if Path(OUTPUT_DIR).exists():
-  trainer.train(resume_from_checkpoint = True)
-else:
-  trainer.train()
+# if Path(OUTPUT_DIR).exists():
+#   trainer.train(resume_from_checkpoint = True)
+# else:
+trainer.train()
