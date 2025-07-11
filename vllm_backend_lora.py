@@ -2,11 +2,12 @@ import re
 import uuid
 from tqdm.asyncio import tqdm
 from vllm import AsyncLLMEngine, AsyncEngineArgs, SamplingParams
+from vllm.lora.request import LoRARequest
 
 from prompt import create_prompt, SYSTEM_PROMPT
 from utils import evaluate_solution, has_for_loop
 
-async def run_vllm_inference(engine, tokenizer, question, test_lists, n, system_prompt, setup, max_tokens=1024, **kwargs):
+async def run_vllm_inference(engine, tokenizer, question, test_lists, n, system_prompt, setup, lora_path, max_tokens=1024, **kwargs):
   if n == 1:
     # TODO: seems super slow w/ n = 1
     sampling_params = SamplingParams(n=2, max_tokens=max_tokens, **kwargs)
@@ -21,7 +22,13 @@ async def run_vllm_inference(engine, tokenizer, question, test_lists, n, system_
   )
   # Manually add assistant prompt with <think> token
   formatted_prompt += "<|im_start|>assistant\n<think>"
-  generator = engine.generate(formatted_prompt, sampling_params, uuid.uuid4())
+  
+  # Create LoRA request if using LoRA
+  lora_request = None
+  if lora_path:
+    lora_request = LoRARequest("adapter", 1, lora_path)
+  
+  generator = engine.generate(formatted_prompt, sampling_params, uuid.uuid4(), lora_request=lora_request)
 
   completions = []
   async for output in generator:
@@ -58,7 +65,7 @@ async def run_vllm_inference(engine, tokenizer, question, test_lists, n, system_
   
   return rollout_data
 
-async def run_vllm(engine, tokenizer, dataset, n_trials, setup):
+async def run_vllm(engine, tokenizer, dataset, n_trials, setup, lora_path=None):
   tasks = [
     run_vllm_inference(
       engine=engine, 
@@ -67,6 +74,7 @@ async def run_vllm(engine, tokenizer, dataset, n_trials, setup):
       test_lists=example["test_list"], 
       system_prompt=SYSTEM_PROMPT, 
       setup=setup,
+      lora_path=lora_path,
       max_tokens=1024, 
       temperature=1.0, 
       top_p=0.95, 
@@ -81,14 +89,27 @@ async def run_vllm(engine, tokenizer, dataset, n_trials, setup):
 
   return results
 
-def init_engine(model_path, dtype, gpu_memory_utilization, **kwargs):
-  engine_args = AsyncEngineArgs(
-    model=model_path,
-    dtype=dtype, 
-    gpu_memory_utilization=gpu_memory_utilization,
-    disable_log_stats=True,
-    disable_log_requests=True,
-    **kwargs,
-  )
+def init_engine(model_path, dtype, gpu_memory_utilization, lora_path=None, **kwargs):
+  # If lora_path is provided, use base model and enable LoRA
+  if lora_path:
+    engine_args = AsyncEngineArgs(
+      model=model_path,  # This should be the base model
+      dtype=dtype, 
+      gpu_memory_utilization=gpu_memory_utilization,
+      disable_log_stats=True,
+      disable_log_requests=True,
+      enable_lora=True,
+      max_lora_rank=16,  # Match your training config
+      **kwargs,
+    )
+  else:
+    engine_args = AsyncEngineArgs(
+      model=model_path,
+      dtype=dtype, 
+      gpu_memory_utilization=gpu_memory_utilization,
+      disable_log_stats=True,
+      disable_log_requests=True,
+      **kwargs,
+    )
   engine = AsyncLLMEngine.from_engine_args(engine_args)
   return engine
