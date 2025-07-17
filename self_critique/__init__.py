@@ -1,0 +1,1 @@
+# This file makes self_critique a Python package 
