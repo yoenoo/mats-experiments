@@ -30,6 +30,7 @@ class OpenRouterClient:
       retries = 10
       async with semaphore:
         async with self.global_semaphore:  # Also respect global limit
+          last_error = None
           for _ in range(retries):
             try:
               response = await self.client.chat.completions.create(
@@ -39,12 +40,14 @@ class OpenRouterClient:
               )
               return response.choices[0].message.content
             except Exception as e:
+              last_error = e
               print(e)
-              if e is not None and isinstance(e, str) and e.startswith("Error code: 4"):
+              if isinstance(e, str) and e.startswith("Error code: 4"):
                 raise ValueError(e)
-              pass
+              continue
           
-          print(f"Failed to generate. Error: {e}")
+          print(f"Failed to generate after {retries} retries. Last error: {last_error}")
+          return None
     
     tasks = [generate_with_semaphore() for _ in range(n_rollouts)]
     responses = await asyncio.gather(*tasks)
